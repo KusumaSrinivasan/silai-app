@@ -8,15 +8,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0d0d0d; font-family: Georgia, serif; color: #e8d5b0; }
+  body { background: #f7f5f2; font-family: 'DM Sans', sans-serif; color: #1a1a1a; }
   input, select, textarea { outline: none; }
   ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #0d0d0d; }
-  ::-webkit-scrollbar-thumb { background: #3d2e0e; border-radius: 2px; }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-  .fade-in { animation: fadeIn 0.3s ease forwards; }
+  ::-webkit-scrollbar-track { background: #f0ede8; }
+  ::-webkit-scrollbar-thumb { background: #c9b99a; border-radius: 2px; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .fade-in { animation: fadeIn 0.25s ease forwards; }
+  button:hover { opacity: 0.88; }
 </style>
 </head>
 <body>
@@ -30,37 +32,44 @@ const db = createClient(SUPA_URL, SUPA_KEY);
 
 const ORDER_STATUSES = ["Received","Cutting","Stitching","Finishing","Ready","Delivered"];
 const STATUS_COLORS = {
-  Received:"#94a3b8", Cutting:"#f59e0b", Stitching:"#3b82f6",
-  Finishing:"#8b5cf6", Ready:"#10b981", Delivered:"#6b7280"
+  Received:"#64748b", Cutting:"#d97706", Stitching:"#2563eb",
+  Finishing:"#7c3aed", Ready:"#059669", Delivered:"#9ca3af"
+};
+const STATUS_BG = {
+  Received:"#f1f5f9", Cutting:"#fef3c7", Stitching:"#eff6ff",
+  Finishing:"#f5f3ff", Ready:"#ecfdf5", Delivered:"#f9fafb"
 };
 
 function genCode(name) {
   const prefix = name.trim().substring(0,3).toUpperCase().replace(/\s/g,"X");
   return `${prefix}-${Math.floor(1000+Math.random()*9000)}`;
 }
-
 function sendWhatsApp(phone, message) {
   window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`,"_blank");
 }
 
 const inputStyle = {
-  width:"100%", background:"#0d0d0d", border:"1px solid #3d2e0e",
-  borderRadius:8, padding:"9px 12px", color:"#e8d5b0", fontSize:14,
-  fontFamily:"inherit"
+  width:"100%", background:"#fff", border:"1.5px solid #e2ddd6",
+  borderRadius:10, padding:"10px 14px", color:"#1a1a1a", fontSize:14,
+  fontFamily:"'DM Sans', sans-serif"
 };
 const btnPrimary = {
-  background:"#d4a853", color:"#0d0d0d", border:"none", padding:"10px 20px",
-  borderRadius:8, cursor:"pointer", fontSize:14, fontFamily:"inherit",
-  fontWeight:700, width:"100%"
+  background:"#2a2118", color:"#fff", border:"none", padding:"11px 20px",
+  borderRadius:10, cursor:"pointer", fontSize:14, fontFamily:"'DM Sans', sans-serif",
+  fontWeight:600, width:"100%"
+};
+const btnGhost = {
+  background:"#fff", color:"#2a2118", border:"1.5px solid #e2ddd6", padding:"7px 13px",
+  borderRadius:8, cursor:"pointer", fontSize:12, fontFamily:"'DM Sans', sans-serif", fontWeight:500
 };
 
 function Modal({ title, onClose, children }) {
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div className="fade-in" style={{background:"#1a1208",border:"1px solid #3d2e0e",borderRadius:16,padding:24,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontSize:16,fontWeight:700,color:"#d4a853"}}>{title}</div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:"#8b7355",cursor:"pointer",fontSize:20}}>✕</button>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div className="fade-in" style={{background:"#fff",borderRadius:18,padding:28,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
+          <div style={{fontSize:17,fontWeight:700,color:"#1a1a1a",fontFamily:"'Playfair Display',serif"}}>{title}</div>
+          <button onClick={onClose} style={{background:"#f5f3f0",border:"none",color:"#6b6b6b",cursor:"pointer",fontSize:15,width:30,height:30,borderRadius:"50%"}}> ✕</button>
         </div>
         {children}
       </div>
@@ -68,9 +77,10 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-// ═══════════════════════════════════════════════════
-// MAIN APP
-// ═══════════════════════════════════════════════════
+function Badge({ label, color, bg }) {
+  return <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:bg||"#f5f3f0",color:color||"#6b6b6b",fontWeight:600}}>{label}</span>;
+}
+
 function App() {
   const [tab, setTab] = React.useState("dashboard");
   const [customers, setCustomers] = React.useState([]);
@@ -86,7 +96,7 @@ function App() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [c, o, inv] = await Promise.all([
+    const [c,o,inv] = await Promise.all([
       db.from("customers").select("*").order("created_at",{ascending:false}),
       db.from("orders").select("*").order("created_at",{ascending:false}),
       db.from("inventory").select("*").order("created_at",{ascending:true}),
@@ -100,123 +110,106 @@ function App() {
   React.useEffect(()=>{ fetchAll(); },[]);
 
   if(loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:16}}>
-      <div style={{fontSize:32,color:"#d4a853"}}>✂</div>
-      <div style={{color:"#8b7355",letterSpacing:3,fontSize:13}}>LOADING SILAI…</div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:14,background:"#f7f5f2"}}>
+      <div style={{fontSize:36}}>✂️</div>
+      <div style={{color:"#9b8b77",letterSpacing:4,fontSize:12}}>LOADING SILAI…</div>
     </div>
   );
 
-  const pendingOrders = orders.filter(o=>o.status!=="Delivered").length;
-  const readyOrders = orders.filter(o=>o.status==="Ready").length;
-  const unpaidAmount = orders.filter(o=>!o.paid).reduce((s,o)=>s+Number(o.amount),0);
-  const lowStock = inventory.filter(i=>i.qty<=i.threshold).length;
+  const pendingOrders=orders.filter(o=>o.status!=="Delivered").length;
+  const readyOrders=orders.filter(o=>o.status==="Ready").length;
+  const unpaidAmount=orders.filter(o=>!o.paid).reduce((s,o)=>s+Number(o.amount),0);
+  const lowStock=inventory.filter(i=>i.qty<=i.threshold).length;
 
   return (
-    <div style={{minHeight:"100vh",background:"#0d0d0d"}}>
-
+    <div style={{minHeight:"100vh",background:"#f7f5f2"}}>
       {toast && (
-        <div style={{position:"fixed",top:16,right:16,zIndex:9999,background:toast.type==="error"?"#7f1d1d":"#14532d",color:"#fff",padding:"10px 20px",borderRadius:8,fontSize:14,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+        <div style={{position:"fixed",top:16,right:16,zIndex:9999,background:toast.type==="error"?"#fef2f2":"#f0fdf4",color:toast.type==="error"?"#dc2626":"#16a34a",padding:"12px 20px",borderRadius:12,fontSize:13,fontWeight:500,boxShadow:"0 4px 20px rgba(0,0,0,0.1)",border:`1px solid ${toast.type==="error"?"#fecaca":"#bbf7d0"}`}}>
           {toast.msg}
         </div>
       )}
-
-      {/* Header */}
-      <div style={{background:"#1a1208",borderBottom:"1px solid #3d2e0e",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{background:"#fff",borderBottom:"1px solid #ede8e0",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 1px 8px rgba(0,0,0,0.04)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:36,height:36,background:"linear-gradient(135deg,#d4a853,#8b6914)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>✂</div>
+          <div style={{width:38,height:38,background:"#2a2118",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>✂️</div>
           <div>
-            <div style={{fontSize:20,fontWeight:700,letterSpacing:2,color:"#d4a853"}}>SILAI</div>
-            <div style={{fontSize:10,color:"#8b7355",letterSpacing:3,marginTop:-2}}>BOUTIQUE MANAGER</div>
+            <div style={{fontSize:19,fontWeight:700,letterSpacing:2,color:"#2a2118",fontFamily:"'Playfair Display',serif"}}>SILAI</div>
+            <div style={{fontSize:9,color:"#b0a090",letterSpacing:3,marginTop:-2,fontWeight:500}}>BOUTIQUE MANAGER</div>
           </div>
         </div>
-        <div style={{fontSize:12,color:"#8b7355"}}>{new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</div>
+        <div style={{fontSize:12,color:"#9b8b77",fontWeight:500}}>{new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</div>
       </div>
-
-      {/* Nav */}
-      <div style={{display:"flex",borderBottom:"1px solid #2a1f08",background:"#130f05",overflowX:"auto"}}>
+      <div style={{display:"flex",borderBottom:"1px solid #ede8e0",background:"#fff",overflowX:"auto"}}>
         {[{id:"dashboard",label:"Dashboard",icon:"◈"},{id:"customers",label:"Customers",icon:"👤"},{id:"orders",label:"Orders",icon:"📋"},{id:"billing",label:"Billing",icon:"₹"},{id:"inventory",label:"Inventory",icon:"🧵"}].map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
-            style={{padding:"12px 20px",border:"none",cursor:"pointer",fontSize:13,fontFamily:"inherit",whiteSpace:"nowrap",background:tab===t.id?"#1a1208":"transparent",color:tab===t.id?"#d4a853":"#8b7355",borderBottom:tab===t.id?"2px solid #d4a853":"2px solid transparent"}}>
+            style={{padding:"12px 20px",border:"none",cursor:"pointer",fontSize:13,fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",background:"transparent",color:tab===t.id?"#2a2118":"#9b8b77",borderBottom:tab===t.id?"2.5px solid #2a2118":"2.5px solid transparent",fontWeight:tab===t.id?600:400}}>
             {t.icon} {t.label}
           </button>
         ))}
       </div>
-
-      <div style={{padding:"20px 24px",maxWidth:1100,margin:"0 auto"}}>
-
+      <div style={{padding:"22px 24px",maxWidth:1100,margin:"0 auto"}}>
         {tab==="dashboard" && (
           <div className="fade-in">
-            <div style={{fontSize:22,marginBottom:20,color:"#d4a853"}}>Good day 🌿</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:24}}>
+            <div style={{fontSize:22,marginBottom:20,color:"#2a2118",fontFamily:"'Playfair Display',serif"}}>Good day 🌿</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:14,marginBottom:24}}>
               {[
-                {label:"Customers",val:customers.length,icon:"👤",color:"#d4a853"},
-                {label:"Pending Orders",val:pendingOrders,icon:"📋",color:"#f59e0b"},
-                {label:"Ready for Pickup",val:readyOrders,icon:"✅",color:"#10b981"},
-                {label:"Unpaid Amount",val:`₹${unpaidAmount.toLocaleString()}`,icon:"₹",color:"#ef4444"},
-                {label:"Low Stock",val:lowStock,icon:"⚠",color:lowStock>0?"#ef4444":"#10b981"},
+                {label:"Customers",val:customers.length,icon:"👤",color:"#2a2118",bg:"#f7f5f2"},
+                {label:"Pending Orders",val:pendingOrders,icon:"📋",color:"#d97706",bg:"#fffbeb"},
+                {label:"Ready for Pickup",val:readyOrders,icon:"✅",color:"#059669",bg:"#f0fdf4"},
+                {label:"Unpaid Amount",val:`₹${unpaidAmount.toLocaleString()}`,icon:"💰",color:"#dc2626",bg:"#fff5f5"},
+                {label:"Low Stock",val:lowStock,icon:"⚠️",color:lowStock>0?"#dc2626":"#059669",bg:lowStock>0?"#fff5f5":"#f0fdf4"},
               ].map(s=>(
-                <div key={s.label} style={{background:"#1a1208",border:"1px solid #2a1f08",borderRadius:12,padding:"16px 18px"}}>
-                  <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
-                  <div style={{fontSize:26,fontWeight:700,color:s.color}}>{s.val}</div>
-                  <div style={{fontSize:11,color:"#8b7355",marginTop:2}}>{s.label}</div>
+                <div key={s.label} style={{background:s.bg,border:"1.5px solid #ede8e0",borderRadius:14,padding:"16px 18px"}}>
+                  <div style={{fontSize:22,marginBottom:6}}>{s.icon}</div>
+                  <div style={{fontSize:24,fontWeight:700,color:s.color,fontFamily:"'Playfair Display',serif"}}>{s.val}</div>
+                  <div style={{fontSize:11,color:"#9b8b77",marginTop:2,fontWeight:500}}>{s.label}</div>
                 </div>
               ))}
             </div>
-
             {readyOrders>0 && (
-              <div style={{background:"#0d1f14",border:"1px solid #14532d",borderRadius:12,padding:18,marginBottom:16}}>
-                <div style={{fontSize:13,color:"#4ade80",marginBottom:12,fontWeight:600}}>🔔 Ready for Pickup</div>
+              <div style={{background:"#f0fdf4",border:"1.5px solid #bbf7d0",borderRadius:14,padding:18,marginBottom:16}}>
+                <div style={{fontSize:13,color:"#059669",marginBottom:12,fontWeight:600}}>🔔 Ready for Pickup</div>
                 {orders.filter(o=>o.status==="Ready").map(o=>(
-                  <div key={o.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #14532d"}}>
+                  <div key={o.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #bbf7d0"}}>
                     <div>
-                      <span style={{color:"#e8d5b0",fontSize:14}}>{o.customer_name}</span>
-                      <span style={{color:"#8b7355",fontSize:12,marginLeft:8}}>{o.item}</span>
-                      <span style={{color:"#8b7355",fontSize:11,marginLeft:8}}>#{o.customer_code}</span>
+                      <span style={{color:"#1a1a1a",fontSize:14,fontWeight:500}}>{o.customer_name}</span>
+                      <span style={{color:"#9b8b77",fontSize:12,marginLeft:8}}>{o.item}</span>
                     </div>
                     <button onClick={()=>{
                       const c=customers.find(x=>x.id===o.customer_id);
-                      if(c) sendWhatsApp(c.phone,`Namaste ${o.customer_name} 🙏\n\nYour *${o.item}* is ready for pickup!\n\nRef: ${o.customer_code}\nAmount: ₹${o.amount}${!o.paid?" (payment pending)":""}\n\nThank you! ✂️`);
+                      if(c) sendWhatsApp(c.phone,`Namaste ${o.customer_name} 🙏\n\nYour *${o.item}* is ready for pickup!\nRef: ${o.customer_code}\nAmount: ₹${o.amount}${!o.paid?" (payment pending)":""}\n\nThank you! ✂️`);
                       showToast("WhatsApp opened!");
-                    }} style={{background:"#25D366",border:"none",color:"#fff",padding:"6px 14px",borderRadius:6,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
-                      📱 Notify
-                    </button>
+                    }} style={{background:"#25D366",border:"none",color:"#fff",padding:"6px 14px",borderRadius:8,cursor:"pointer",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>📱 Notify</button>
                   </div>
                 ))}
               </div>
             )}
-
-            <div style={{background:"#1a1208",border:"1px solid #2a1f08",borderRadius:12,padding:18}}>
-              <div style={{fontSize:13,color:"#d4a853",marginBottom:12,fontWeight:600}}>Recent Orders</div>
+            <div style={{background:"#fff",border:"1.5px solid #ede8e0",borderRadius:14,padding:18}}>
+              <div style={{fontSize:13,color:"#2a2118",marginBottom:14,fontWeight:600}}>Recent Orders</div>
               {orders.slice(0,6).map(o=>(
-                <div key={o.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #2a1f08"}}>
+                <div key={o.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #f5f3f0"}}>
                   <div>
-                    <span style={{color:"#e8d5b0",fontSize:14}}>{o.customer_name}</span>
-                    <span style={{color:"#8b7355",fontSize:12,marginLeft:8}}>{o.item}</span>
+                    <span style={{color:"#1a1a1a",fontSize:14,fontWeight:500}}>{o.customer_name}</span>
+                    <span style={{color:"#9b8b77",fontSize:12,marginLeft:8}}>{o.item}</span>
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:STATUS_COLORS[o.status]+"22",color:STATUS_COLORS[o.status]}}>{o.status}</span>
-                    <span style={{color:"#d4a853",fontSize:13}}>₹{o.amount}</span>
+                    <Badge label={o.status} color={STATUS_COLORS[o.status]} bg={STATUS_BG[o.status]}/>
+                    <span style={{color:"#2a2118",fontSize:13,fontWeight:600}}>₹{o.amount}</span>
                   </div>
                 </div>
               ))}
-              {orders.length===0 && <div style={{color:"#8b7355",fontSize:13}}>No orders yet.</div>}
+              {orders.length===0 && <div style={{color:"#9b8b77",fontSize:13,textAlign:"center",padding:16}}>No orders yet.</div>}
             </div>
           </div>
         )}
-
         {tab==="customers" && <CustomersTab customers={customers} orders={orders} db={db} onRefresh={fetchAll} showToast={showToast}/>}
         {tab==="orders" && <OrdersTab orders={orders} customers={customers} db={db} onRefresh={fetchAll} showToast={showToast}/>}
         {tab==="billing" && <BillingTab orders={orders} customers={customers} db={db} onRefresh={fetchAll} showToast={showToast}/>}
         {tab==="inventory" && <InventoryTab inventory={inventory} db={db} onRefresh={fetchAll} showToast={showToast}/>}
-
       </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════
-// CUSTOMERS
-// ═══════════════════════════════════════════════════
 function CustomersTab({ customers, orders, db, onRefresh, showToast }) {
   const [search, setSearch] = React.useState("");
   const [showNew, setShowNew] = React.useState(false);
@@ -226,20 +219,13 @@ function CustomersTab({ customers, orders, db, onRefresh, showToast }) {
   const [mForm, setMForm] = React.useState({chest:"",waist:"",hip:"",shoulder:"",length:"",sleeve:"",inseam:""});
   const [saving, setSaving] = React.useState(false);
 
-  const filtered = customers.filter(c=>
-    c.name.toLowerCase().includes(search.toLowerCase())||
-    c.code.toLowerCase().includes(search.toLowerCase())||
-    c.phone.includes(search)
-  );
+  const filtered=customers.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.code.toLowerCase().includes(search.toLowerCase())||c.phone.includes(search));
 
   const addCustomer = async () => {
     if(!form.name.trim()||!form.phone.trim()){showToast("Name and phone required","error");return;}
     setSaving(true);
-    const {error} = await db.from("customers").insert({
-      code:genCode(form.name), name:form.name, phone:form.phone, notes:form.notes, measurements:{}
-    });
+    await db.from("customers").insert({code:genCode(form.name),name:form.name,phone:form.phone,notes:form.notes,measurements:{}});
     setSaving(false);
-    if(error){showToast("Error saving","error");return;}
     showToast("Customer added ✓");
     setForm({name:"",phone:"",notes:""});
     setShowNew(false);
@@ -247,19 +233,15 @@ function CustomersTab({ customers, orders, db, onRefresh, showToast }) {
   };
 
   const openMeasurements = (c) => {
-    const m = c.measurements||{};
+    const m=c.measurements||{};
     setMForm({chest:m.chest||"",waist:m.waist||"",hip:m.hip||"",shoulder:m.shoulder||"",length:m.length||"",sleeve:m.sleeve||"",inseam:m.inseam||""});
     setEditM(c);
   };
 
   const saveMeasurements = async () => {
     setSaving(true);
-    const {error} = await db.from("customers").update({
-      measurements:mForm,
-      measurement_date:new Date().toISOString().split("T")[0]
-    }).eq("id",editM.id);
+    await db.from("customers").update({measurements:mForm,measurement_date:new Date().toISOString().split("T")[0]}).eq("id",editM.id);
     setSaving(false);
-    if(error){showToast("Error saving","error");return;}
     showToast("Measurements saved ✓");
     setEditM(null);
     onRefresh();
@@ -268,65 +250,56 @@ function CustomersTab({ customers, orders, db, onRefresh, showToast }) {
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-        <div style={{fontSize:20,color:"#d4a853"}}>Customer Profiles</div>
+        <div style={{fontSize:20,color:"#2a2118",fontFamily:"'Playfair Display',serif"}}>Customer Profiles</div>
         <button onClick={()=>setShowNew(true)} style={{...btnPrimary,width:"auto",padding:"9px 18px"}}>+ New Customer</button>
       </div>
-
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, code or phone…"
-        style={{...inputStyle,marginBottom:16}}/>
-
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, code or phone…" style={{...inputStyle,marginBottom:16}}/>
       <div style={{display:"grid",gap:10}}>
         {filtered.map(c=>{
-          const hasM = c.measurements && Object.keys(c.measurements).length>0;
+          const hasM=c.measurements&&Object.keys(c.measurements).length>0;
           return (
-            <div key={c.id} style={{background:"#1a1208",border:"1px solid #2a1f08",borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <div key={c.id} style={{background:"#fff",border:"1.5px solid #ede8e0",borderRadius:14,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <div style={{width:40,height:40,background:"linear-gradient(135deg,#3d2e0e,#1a1208)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,border:"1px solid #3d2e0e",flexShrink:0}}>
-                  {c.name[0].toUpperCase()}
-                </div>
+                <div style={{width:42,height:42,background:"#f7f5f2",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,border:"1.5px solid #ede8e0",flexShrink:0,fontWeight:700,color:"#2a2118"}}>{c.name[0].toUpperCase()}</div>
                 <div>
-                  <div style={{fontWeight:600,fontSize:14,color:"#e8d5b0"}}>{c.name}</div>
-                  <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap"}}>
-                    <span style={{fontSize:11,background:"#d4a853",color:"#0d0d0d",padding:"2px 8px",borderRadius:10,fontWeight:700}}>{c.code}</span>
-                    <span style={{fontSize:12,color:"#8b7355"}}>{c.phone}</span>
-                    {hasM && <span style={{fontSize:11,color:"#10b981"}}>📐 Measured</span>}
+                  <div style={{fontWeight:600,fontSize:14,color:"#1a1a1a"}}>{c.name}</div>
+                  <div style={{display:"flex",gap:8,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+                    <span style={{fontSize:11,background:"#2a2118",color:"#fff",padding:"2px 9px",borderRadius:10,fontWeight:600}}>{c.code}</span>
+                    <span style={{fontSize:12,color:"#9b8b77"}}>{c.phone}</span>
+                    {hasM && <span style={{fontSize:11,color:"#059669",fontWeight:500}}>📐 Measured</span>}
                   </div>
                 </div>
               </div>
               <div style={{display:"flex",gap:6,flexShrink:0}}>
-                <button onClick={()=>setViewC(c)} style={{background:"#2a1f08",border:"1px solid #3d2e0e",color:"#d4a853",padding:"6px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>View</button>
-                <button onClick={()=>openMeasurements(c)} style={{background:hasM?"#0d1f14":"#1a0d0d",border:`1px solid ${hasM?"#14532d":"#3d0e0e"}`,color:hasM?"#4ade80":"#f87171",padding:"6px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
-                  {hasM?"📐 Update":"📐 Add"}
-                </button>
+                <button onClick={()=>setViewC(c)} style={btnGhost}>View</button>
+                <button onClick={()=>openMeasurements(c)} style={{...btnGhost,background:hasM?"#f0fdf4":"#fff5f5",borderColor:hasM?"#bbf7d0":"#fecaca",color:hasM?"#059669":"#dc2626"}}>{hasM?"📐 Update":"📐 Add"}</button>
               </div>
             </div>
           );
         })}
-        {filtered.length===0 && <div style={{color:"#8b7355",textAlign:"center",padding:32}}>No customers found.</div>}
+        {filtered.length===0 && <div style={{color:"#9b8b77",textAlign:"center",padding:40,background:"#fff",borderRadius:14,border:"1.5px solid #ede8e0"}}>No customers found.</div>}
       </div>
-
       {showNew && (
         <Modal title="New Customer" onClose={()=>setShowNew(false)}>
           {[["Full Name","name","text"],["Phone Number","phone","tel"],["Notes (optional)","notes","text"]].map(([label,key,type])=>(
             <div key={key} style={{marginBottom:14}}>
-              <label style={{fontSize:12,color:"#8b7355",display:"block",marginBottom:4}}>{label}</label>
+              <label style={{fontSize:12,color:"#6b6b6b",display:"block",marginBottom:5,fontWeight:500}}>{label}</label>
               <input type={type} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} style={inputStyle}/>
             </div>
           ))}
-          <button onClick={addCustomer} disabled={saving} style={btnPrimary}>{saving?"Saving…":"Create Customer & Generate Code"}</button>
+          <button onClick={addCustomer} disabled={saving} style={{...btnPrimary,marginTop:4}}>{saving?"Saving…":"Create Customer & Generate Code"}</button>
         </Modal>
       )}
-
       {editM && (
         <Modal title={`Measurements — ${editM.name}`} onClose={()=>setEditM(null)}>
-          <div style={{background:"#0d1208",border:"1px solid #14532d",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#4ade80"}}>
+          <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12,color:"#059669",fontWeight:500}}>
             Code: <strong>{editM.code}</strong>
-            {editM.measurement_date && <span style={{marginLeft:12,color:"#8b7355"}}>Last updated: {editM.measurement_date}</span>}
+            {editM.measurement_date && <span style={{marginLeft:12,color:"#9b8b77"}}>Last updated: {editM.measurement_date}</span>}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             {[["Chest","chest"],["Waist","waist"],["Hip","hip"],["Shoulder","shoulder"],["Length","length"],["Sleeve","sleeve"],["Inseam","inseam"]].map(([label,key])=>(
               <div key={key}>
-                <label style={{fontSize:12,color:"#8b7355",display:"block",marginBottom:4}}>{label} (inches)</label>
+                <label style={{fontSize:12,color:"#6b6b6b",display:"block",marginBottom:4,fontWeight:500}}>{label} (inches)</label>
                 <input type="number" value={mForm[key]} onChange={e=>setMForm({...mForm,[key]:e.target.value})} style={inputStyle}/>
               </div>
             ))}
@@ -334,155 +307,143 @@ function CustomersTab({ customers, orders, db, onRefresh, showToast }) {
           <button onClick={saveMeasurements} disabled={saving} style={{...btnPrimary,marginTop:16}}>{saving?"Saving…":"Save Measurements"}</button>
         </Modal>
       )}
-
       {viewC && (
         <Modal title={viewC.name} onClose={()=>setViewC(null)}>
-          <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-            <span style={{fontSize:12,background:"#d4a853",color:"#0d0d0d",padding:"3px 10px",borderRadius:10,fontWeight:700}}>{viewC.code}</span>
-            <span style={{fontSize:12,color:"#8b7355",padding:"3px 0"}}>📱 {viewC.phone}</span>
+          <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+            <span style={{fontSize:12,background:"#2a2118",color:"#fff",padding:"3px 10px",borderRadius:10,fontWeight:600}}>{viewC.code}</span>
+            <span style={{fontSize:12,color:"#9b8b77"}}>📱 {viewC.phone}</span>
           </div>
-          {viewC.notes && <div style={{fontSize:13,color:"#8b7355",marginBottom:14}}>Note: {viewC.notes}</div>}
-          {viewC.measurements && Object.keys(viewC.measurements).length>0 && (
-            <div style={{background:"#0d1208",border:"1px solid #14532d",borderRadius:8,padding:14,marginBottom:14}}>
-              <div style={{fontSize:12,color:"#4ade80",marginBottom:10}}>📐 Measurements — {viewC.measurement_date}</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+          {viewC.notes && <div style={{fontSize:13,color:"#6b6b6b",marginBottom:14,background:"#f7f5f2",padding:"8px 12px",borderRadius:8}}>{viewC.notes}</div>}
+          {viewC.measurements&&Object.keys(viewC.measurements).length>0 && (
+            <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:10,padding:14,marginBottom:14}}>
+              <div style={{fontSize:12,color:"#059669",marginBottom:10,fontWeight:600}}>📐 Measurements — {viewC.measurement_date}</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
                 {Object.entries(viewC.measurements).filter(([,v])=>v).map(([k,v])=>(
-                  <div key={k} style={{textAlign:"center"}}>
-                    <div style={{fontSize:16,color:"#d4a853",fontWeight:700}}>{v}"</div>
-                    <div style={{fontSize:10,color:"#8b7355",textTransform:"capitalize"}}>{k}</div>
+                  <div key={k} style={{textAlign:"center",background:"#fff",borderRadius:8,padding:"8px 4px"}}>
+                    <div style={{fontSize:16,color:"#2a2118",fontWeight:700,fontFamily:"'Playfair Display',serif"}}>{v}"</div>
+                    <div style={{fontSize:10,color:"#9b8b77",textTransform:"capitalize",marginTop:2}}>{k}</div>
                   </div>
                 ))}
               </div>
             </div>
           )}
-          <div style={{fontSize:13,color:"#d4a853",marginBottom:8}}>Orders</div>
+          <div style={{fontSize:13,color:"#2a2118",marginBottom:10,fontWeight:600}}>Order History</div>
           {orders.filter(o=>o.customer_id===viewC.id).map(o=>(
-            <div key={o.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #2a1f08",fontSize:13}}>
-              <span>{o.item}</span>
-              <span style={{color:STATUS_COLORS[o.status]}}>{o.status}</span>
-              <span style={{color:"#d4a853"}}>₹{o.amount}</span>
+            <div key={o.id} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f5f3f0",fontSize:13,alignItems:"center"}}>
+              <span style={{fontWeight:500}}>{o.item}</span>
+              <Badge label={o.status} color={STATUS_COLORS[o.status]} bg={STATUS_BG[o.status]}/>
+              <span style={{color:"#2a2118",fontWeight:600}}>₹{o.amount}</span>
             </div>
           ))}
-          {orders.filter(o=>o.customer_id===viewC.id).length===0 && <div style={{color:"#8b7355",fontSize:13}}>No orders yet.</div>}
+          {orders.filter(o=>o.customer_id===viewC.id).length===0 && <div style={{color:"#9b8b77",fontSize:13}}>No orders yet.</div>}
         </Modal>
       )}
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════
-// ORDERS
-// ═══════════════════════════════════════════════════
 function OrdersTab({ orders, customers, db, onRefresh, showToast }) {
   const [filter, setFilter] = React.useState("All");
   const [showNew, setShowNew] = React.useState(false);
   const [form, setForm] = React.useState({customer_id:"",item:"",fabric:"",due_date:"",amount:""});
   const [saving, setSaving] = React.useState(false);
 
-  const filtered = filter==="All" ? orders : orders.filter(o=>o.status===filter);
+  const filtered=filter==="All"?orders:orders.filter(o=>o.status===filter);
 
   const addOrder = async () => {
-    const c = customers.find(x=>x.id===form.customer_id);
+    const c=customers.find(x=>x.id===form.customer_id);
     if(!c||!form.item||!form.amount){showToast("Fill all required fields","error");return;}
     setSaving(true);
-    const {error} = await db.from("orders").insert({
-      customer_id:c.id, customer_name:c.name, customer_code:c.code,
-      item:form.item, fabric:form.fabric, status:"Received",
-      due_date:form.due_date||null, amount:parseFloat(form.amount), paid:false
-    });
+    await db.from("orders").insert({customer_id:c.id,customer_name:c.name,customer_code:c.code,item:form.item,fabric:form.fabric,status:"Received",due_date:form.due_date||null,amount:parseFloat(form.amount),paid:false});
     setSaving(false);
-    if(error){showToast("Error saving","error");return;}
     showToast("Order created ✓");
     setForm({customer_id:"",item:"",fabric:"",due_date:"",amount:""});
     setShowNew(false);
     onRefresh();
   };
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id,status) => {
     await db.from("orders").update({status}).eq("id",id);
     onRefresh();
-    if(status==="Ready") showToast("Order ready! Don't forget to notify the customer 📱");
+    if(status==="Ready") showToast("Order ready! Notify the customer 📱");
   };
 
   const notifyCustomer = (order) => {
-    const c = customers.find(x=>x.id===order.customer_id);
+    const c=customers.find(x=>x.id===order.customer_id);
     if(!c) return;
-    const msgs = {
-      Received:`Hi ${order.customer_name} 🙏\nWe've received your order for *${order.item}*.\nDue date: ${order.due_date||"TBD"}\nRef: ${order.customer_code}`,
-      Ready:`Namaste ${order.customer_name} 🙏\nYour *${order.item}* is ready for pickup! ✂️\nAmount: ₹${order.amount}${!order.paid?" (payment pending)":""}\nRef: ${order.customer_code}`,
+    const msgs={
+      Received:`Hi ${order.customer_name} 🙏\nWe've received your order for *${order.item}*.\nDue: ${order.due_date||"TBD"}\nRef: ${order.customer_code}`,
+      Ready:`Namaste ${order.customer_name} 🙏\nYour *${order.item}* is ready! ✂️\nAmount: ₹${order.amount}${!order.paid?" (payment pending)":""}\nRef: ${order.customer_code}`,
       Delivered:`Thank you ${order.customer_name} 😊\nHope you love your *${order.item}*! 🌸`
     };
-    sendWhatsApp(c.phone, msgs[order.status]||msgs.Received);
+    sendWhatsApp(c.phone,msgs[order.status]||msgs.Received);
     showToast("WhatsApp opened!");
   };
 
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-        <div style={{fontSize:20,color:"#d4a853"}}>Orders</div>
+        <div style={{fontSize:20,color:"#2a2118",fontFamily:"'Playfair Display',serif"}}>Orders</div>
         <button onClick={()=>setShowNew(true)} style={{...btnPrimary,width:"auto",padding:"9px 18px"}}>+ New Order</button>
       </div>
-
       <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
         {["All",...ORDER_STATUSES].map(s=>(
           <button key={s} onClick={()=>setFilter(s)}
-            style={{padding:"4px 12px",borderRadius:20,border:"1px solid",cursor:"pointer",fontSize:11,fontFamily:"inherit",background:filter===s?(STATUS_COLORS[s]||"#d4a853"):"transparent",color:filter===s?"#0d0d0d":(STATUS_COLORS[s]||"#8b7355"),borderColor:STATUS_COLORS[s]||"#3d2e0e"}}>
+            style={{padding:"5px 14px",borderRadius:20,border:"1.5px solid",cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:500,background:filter===s?(STATUS_BG[s]||"#f7f5f2"):"#fff",color:filter===s?(STATUS_COLORS[s]||"#2a2118"):(STATUS_COLORS[s]||"#6b6b6b"),borderColor:STATUS_COLORS[s]||"#ede8e0"}}>
             {s}
           </button>
         ))}
       </div>
-
       <div style={{display:"grid",gap:10}}>
         {filtered.map(o=>(
-          <div key={o.id} style={{background:"#1a1208",border:"1px solid #2a1f08",borderRadius:12,padding:"14px 18px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+          <div key={o.id} style={{background:"#fff",border:"1.5px solid #ede8e0",borderRadius:14,padding:"14px 18px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
               <div>
-                <div style={{fontWeight:600,fontSize:14,color:"#e8d5b0"}}>{o.customer_name} <span style={{fontSize:11,color:"#8b7355"}}>#{o.customer_code}</span></div>
-                <div style={{fontSize:12,color:"#8b7355",marginTop:2}}>{o.item}{o.fabric&&` · ${o.fabric}`}</div>
+                <div style={{fontWeight:600,fontSize:14,color:"#1a1a1a"}}>{o.customer_name} <span style={{fontSize:11,color:"#9b8b77",fontWeight:400}}>#{o.customer_code}</span></div>
+                <div style={{fontSize:12,color:"#9b8b77",marginTop:3}}>{o.item}{o.fabric&&` · ${o.fabric}`}</div>
               </div>
               <div style={{textAlign:"right"}}>
-                <div style={{color:"#d4a853",fontWeight:700}}>₹{o.amount}</div>
-                <div style={{fontSize:11,color:o.paid?"#10b981":"#ef4444"}}>{o.paid?"✓ Paid":"Unpaid"}</div>
+                <div style={{color:"#2a2118",fontWeight:700,fontSize:15}}>₹{o.amount}</div>
+                <div style={{fontSize:11,color:o.paid?"#059669":"#dc2626",fontWeight:500,marginTop:2}}>{o.paid?"✓ Paid":"Unpaid"}</div>
               </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                 {ORDER_STATUSES.map(s=>(
                   <button key={s} onClick={()=>updateStatus(o.id,s)}
-                    style={{padding:"3px 8px",borderRadius:6,border:"1px solid",cursor:"pointer",fontSize:10,fontFamily:"inherit",background:o.status===s?STATUS_COLORS[s]+"33":"transparent",color:STATUS_COLORS[s],borderColor:STATUS_COLORS[s]+"44"}}>
+                    style={{padding:"4px 10px",borderRadius:8,border:"1.5px solid",cursor:"pointer",fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:500,background:o.status===s?STATUS_BG[s]:"#fff",color:STATUS_COLORS[s],borderColor:o.status===s?STATUS_COLORS[s]:"#ede8e0"}}>
                     {s}
                   </button>
                 ))}
               </div>
-              <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                {o.due_date && <span style={{fontSize:11,color:"#8b7355"}}>Due: {o.due_date}</span>}
-                <button onClick={()=>notifyCustomer(o)} style={{background:"#25D366",border:"none",color:"#fff",padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:11}}>📱 WA</button>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                {o.due_date && <span style={{fontSize:11,color:"#9b8b77"}}>Due: {o.due_date}</span>}
+                <button onClick={()=>notifyCustomer(o)} style={{background:"#25D366",border:"none",color:"#fff",padding:"5px 12px",borderRadius:8,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>📱 WA</button>
               </div>
             </div>
           </div>
         ))}
-        {filtered.length===0 && <div style={{color:"#8b7355",textAlign:"center",padding:32}}>No orders.</div>}
+        {filtered.length===0 && <div style={{color:"#9b8b77",textAlign:"center",padding:40,background:"#fff",borderRadius:14,border:"1.5px solid #ede8e0"}}>No orders.</div>}
       </div>
-
       {showNew && (
         <Modal title="New Order" onClose={()=>setShowNew(false)}>
           <div style={{marginBottom:14}}>
-            <label style={{fontSize:12,color:"#8b7355",display:"block",marginBottom:4}}>Customer *</label>
+            <label style={{fontSize:12,color:"#6b6b6b",display:"block",marginBottom:5,fontWeight:500}}>Customer *</label>
             <select value={form.customer_id} onChange={e=>setForm({...form,customer_id:e.target.value})} style={inputStyle}>
               <option value="">Select customer…</option>
               {customers.map(c=><option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
             </select>
           </div>
-          {form.customer_id && (()=>{
+          {form.customer_id&&(()=>{
             const c=customers.find(x=>x.id===form.customer_id);
             const hasM=c?.measurements&&Object.keys(c.measurements).length>0;
             return hasM
-              ? <div style={{background:"#0d1208",border:"1px solid #14532d",borderRadius:8,padding:10,marginBottom:14,fontSize:12,color:"#4ade80"}}>📐 Chest {c.measurements.chest}", Waist {c.measurements.waist}", Hip {c.measurements.hip}"</div>
-              : <div style={{background:"#1a0d0d",border:"1px solid #3d0e0e",borderRadius:8,padding:10,marginBottom:14,fontSize:12,color:"#f87171"}}>⚠ No measurements on file for this customer</div>;
+              ? <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:10,marginBottom:14,fontSize:12,color:"#059669",fontWeight:500}}>📐 Chest {c.measurements.chest}", Waist {c.measurements.waist}", Hip {c.measurements.hip}"</div>
+              : <div style={{background:"#fff5f5",border:"1px solid #fecaca",borderRadius:8,padding:10,marginBottom:14,fontSize:12,color:"#dc2626",fontWeight:500}}>⚠ No measurements on file</div>;
           })()}
           {[["Item / Garment *","item","text"],["Fabric","fabric","text"],["Due Date","due_date","date"],["Amount ₹ *","amount","number"]].map(([label,key,type])=>(
             <div key={key} style={{marginBottom:14}}>
-              <label style={{fontSize:12,color:"#8b7355",display:"block",marginBottom:4}}>{label}</label>
+              <label style={{fontSize:12,color:"#6b6b6b",display:"block",marginBottom:5,fontWeight:500}}>{label}</label>
               <input type={type} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} style={inputStyle}/>
             </div>
           ))}
@@ -493,14 +454,11 @@ function OrdersTab({ orders, customers, db, onRefresh, showToast }) {
   );
 }
 
-// ═══════════════════════════════════════════════════
-// BILLING
-// ═══════════════════════════════════════════════════
 function BillingTab({ orders, customers, db, onRefresh, showToast }) {
-  const unpaid = orders.filter(o=>!o.paid);
-  const paid = orders.filter(o=>o.paid);
-  const totalRevenue = paid.reduce((s,o)=>s+Number(o.amount),0);
-  const pendingRevenue = unpaid.reduce((s,o)=>s+Number(o.amount),0);
+  const unpaid=orders.filter(o=>!o.paid);
+  const paid=orders.filter(o=>o.paid);
+  const totalRevenue=paid.reduce((s,o)=>s+Number(o.amount),0);
+  const pendingRevenue=unpaid.reduce((s,o)=>s+Number(o.amount),0);
 
   const markPaid = async (id) => {
     await db.from("orders").update({paid:true}).eq("id",id);
@@ -517,46 +475,44 @@ function BillingTab({ orders, customers, db, onRefresh, showToast }) {
 
   return (
     <div className="fade-in">
-      <div style={{fontSize:20,color:"#d4a853",marginBottom:18}}>Billing & Payments</div>
+      <div style={{fontSize:20,color:"#2a2118",marginBottom:18,fontFamily:"'Playfair Display',serif"}}>Billing & Payments</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:22}}>
-        <div style={{background:"#0d1208",border:"1px solid #14532d",borderRadius:12,padding:18}}>
-          <div style={{fontSize:11,color:"#4ade80",marginBottom:4,letterSpacing:2}}>COLLECTED</div>
-          <div style={{fontSize:26,fontWeight:700,color:"#4ade80"}}>₹{totalRevenue.toLocaleString()}</div>
+        <div style={{background:"#f0fdf4",border:"1.5px solid #bbf7d0",borderRadius:14,padding:18}}>
+          <div style={{fontSize:11,color:"#059669",marginBottom:4,letterSpacing:2,fontWeight:600}}>COLLECTED</div>
+          <div style={{fontSize:26,fontWeight:700,color:"#059669",fontFamily:"'Playfair Display',serif"}}>₹{totalRevenue.toLocaleString()}</div>
         </div>
-        <div style={{background:"#1a0d0d",border:"1px solid #3d0e0e",borderRadius:12,padding:18}}>
-          <div style={{fontSize:11,color:"#f87171",marginBottom:4,letterSpacing:2}}>PENDING</div>
-          <div style={{fontSize:26,fontWeight:700,color:"#f87171"}}>₹{pendingRevenue.toLocaleString()}</div>
+        <div style={{background:"#fff5f5",border:"1.5px solid #fecaca",borderRadius:14,padding:18}}>
+          <div style={{fontSize:11,color:"#dc2626",marginBottom:4,letterSpacing:2,fontWeight:600}}>PENDING</div>
+          <div style={{fontSize:26,fontWeight:700,color:"#dc2626",fontFamily:"'Playfair Display',serif"}}>₹{pendingRevenue.toLocaleString()}</div>
         </div>
       </div>
-
-      <div style={{fontSize:13,color:"#d4a853",marginBottom:10}}>Pending Payments ({unpaid.length})</div>
+      <div style={{fontSize:13,color:"#2a2118",marginBottom:10,fontWeight:600}}>Pending Payments ({unpaid.length})</div>
       <div style={{display:"grid",gap:8,marginBottom:22}}>
         {unpaid.map(o=>(
-          <div key={o.id} style={{background:"#1a0d0d",border:"1px solid #3d0e0e",borderRadius:12,padding:"12px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+          <div key={o.id} style={{background:"#fff5f5",border:"1.5px solid #fecaca",borderRadius:12,padding:"12px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
             <div>
-              <div style={{fontWeight:600,fontSize:14}}>{o.customer_name} <span style={{fontSize:11,color:"#8b7355"}}>#{o.customer_code}</span></div>
-              <div style={{fontSize:12,color:"#8b7355"}}>{o.item}</div>
+              <div style={{fontWeight:600,fontSize:14}}>{o.customer_name} <span style={{fontSize:11,color:"#9b8b77",fontWeight:400}}>#{o.customer_code}</span></div>
+              <div style={{fontSize:12,color:"#9b8b77"}}>{o.item}</div>
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-              <span style={{color:"#f87171",fontWeight:700}}>₹{o.amount}</span>
-              <button onClick={()=>markPaid(o.id)} style={{background:"#14532d",border:"none",color:"#4ade80",padding:"6px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>✓ Paid</button>
+              <span style={{color:"#dc2626",fontWeight:700}}>₹{o.amount}</span>
+              <button onClick={()=>markPaid(o.id)} style={{background:"#059669",border:"none",color:"#fff",padding:"6px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>✓ Paid</button>
             </div>
           </div>
         ))}
-        {unpaid.length===0 && <div style={{color:"#8b7355",textAlign:"center",padding:20}}>All payments collected! 🎉</div>}
+        {unpaid.length===0 && <div style={{color:"#059669",textAlign:"center",padding:20,background:"#f0fdf4",borderRadius:12,border:"1px solid #bbf7d0",fontWeight:500}}>All payments collected! 🎉</div>}
       </div>
-
-      <div style={{fontSize:13,color:"#8b7355",marginBottom:10}}>Paid Orders</div>
+      <div style={{fontSize:13,color:"#9b8b77",marginBottom:10,fontWeight:500}}>Paid Orders</div>
       <div style={{display:"grid",gap:8}}>
         {paid.map(o=>(
-          <div key={o.id} style={{background:"#1a1208",border:"1px solid #2a1f08",borderRadius:10,padding:"10px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+          <div key={o.id} style={{background:"#fff",border:"1.5px solid #ede8e0",borderRadius:12,padding:"10px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
             <div>
-              <div style={{fontSize:13}}>{o.customer_name} <span style={{fontSize:11,color:"#8b7355"}}>#{o.customer_code}</span></div>
-              <div style={{fontSize:12,color:"#8b7355"}}>{o.item}</div>
+              <div style={{fontSize:13,fontWeight:500}}>{o.customer_name} <span style={{fontSize:11,color:"#9b8b77",fontWeight:400}}>#{o.customer_code}</span></div>
+              <div style={{fontSize:12,color:"#9b8b77"}}>{o.item}</div>
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-              <span style={{color:"#4ade80",fontWeight:700}}>₹{o.amount}</span>
-              <button onClick={()=>sendReceipt(o)} style={{background:"#25D366",border:"none",color:"#fff",padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:11}}>🧾 Receipt</button>
+              <span style={{color:"#059669",fontWeight:700}}>₹{o.amount}</span>
+              <button onClick={()=>sendReceipt(o)} style={{background:"#25D366",border:"none",color:"#fff",padding:"5px 10px",borderRadius:8,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:600}}>🧾 Receipt</button>
             </div>
           </div>
         ))}
@@ -565,9 +521,6 @@ function BillingTab({ orders, customers, db, onRefresh, showToast }) {
   );
 }
 
-// ═══════════════════════════════════════════════════
-// INVENTORY
-// ═══════════════════════════════════════════════════
 function InventoryTab({ inventory, db, onRefresh, showToast }) {
   const [showNew, setShowNew] = React.useState(false);
   const [form, setForm] = React.useState({name:"",qty:"",unit:"metres",threshold:""});
@@ -584,50 +537,47 @@ function InventoryTab({ inventory, db, onRefresh, showToast }) {
     onRefresh();
   };
 
-  const updateQty = async (id, delta, current) => {
-    const newQty = Math.max(0, current+delta);
-    await db.from("inventory").update({qty:newQty}).eq("id",id);
+  const updateQty = async (id,delta,current) => {
+    await db.from("inventory").update({qty:Math.max(0,current+delta)}).eq("id",id);
     onRefresh();
   };
 
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-        <div style={{fontSize:20,color:"#d4a853"}}>Fabric & Inventory</div>
+        <div style={{fontSize:20,color:"#2a2118",fontFamily:"'Playfair Display',serif"}}>Fabric & Inventory</div>
         <button onClick={()=>setShowNew(true)} style={{...btnPrimary,width:"auto",padding:"9px 18px"}}>+ Add Item</button>
       </div>
-
       <div style={{display:"grid",gap:10}}>
         {inventory.map(i=>{
           const low=i.qty<=i.threshold;
           return (
-            <div key={i.id} style={{background:low?"#1a0d0d":"#1a1208",border:`1px solid ${low?"#3d0e0e":"#2a1f08"}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div key={i.id} style={{background:low?"#fff5f5":"#fff",border:`1.5px solid ${low?"#fecaca":"#ede8e0"}`,borderRadius:14,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div>
-                <div style={{fontWeight:600,fontSize:14,color:"#e8d5b0"}}>{i.name}</div>
-                <div style={{fontSize:12,color:"#8b7355",marginTop:2}}>Min: {i.threshold} {i.unit}</div>
+                <div style={{fontWeight:600,fontSize:14,color:"#1a1a1a"}}>{i.name}</div>
+                <div style={{fontSize:12,color:"#9b8b77",marginTop:2}}>Min stock: {i.threshold} {i.unit}</div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                {low && <span style={{fontSize:11,color:"#f87171",padding:"2px 8px",background:"#3d0e0e",borderRadius:10}}>Low Stock</span>}
-                <button onClick={()=>updateQty(i.id,-1,i.qty)} style={{background:"#2a1f08",border:"1px solid #3d2e0e",color:"#d4a853",width:28,height:28,borderRadius:6,cursor:"pointer",fontSize:16}}>−</button>
-                <span style={{color:low?"#f87171":"#d4a853",fontWeight:700,fontSize:15,minWidth:60,textAlign:"center"}}>{i.qty} {i.unit}</span>
-                <button onClick={()=>updateQty(i.id,1,i.qty)} style={{background:"#2a1f08",border:"1px solid #3d2e0e",color:"#d4a853",width:28,height:28,borderRadius:6,cursor:"pointer",fontSize:16}}>+</button>
+                {low && <Badge label="Low Stock" color="#dc2626" bg="#fee2e2"/>}
+                <button onClick={()=>updateQty(i.id,-1,i.qty)} style={{background:"#f7f5f2",border:"1.5px solid #ede8e0",color:"#2a2118",width:30,height:30,borderRadius:8,cursor:"pointer",fontSize:16,fontWeight:600}}>−</button>
+                <span style={{color:low?"#dc2626":"#2a2118",fontWeight:700,fontSize:15,minWidth:70,textAlign:"center"}}>{i.qty} {i.unit}</span>
+                <button onClick={()=>updateQty(i.id,1,i.qty)} style={{background:"#f7f5f2",border:"1.5px solid #ede8e0",color:"#2a2118",width:30,height:30,borderRadius:8,cursor:"pointer",fontSize:16,fontWeight:600}}>+</button>
               </div>
             </div>
           );
         })}
-        {inventory.length===0 && <div style={{color:"#8b7355",textAlign:"center",padding:32}}>No items yet.</div>}
+        {inventory.length===0 && <div style={{color:"#9b8b77",textAlign:"center",padding:40,background:"#fff",borderRadius:14,border:"1.5px solid #ede8e0"}}>No items yet.</div>}
       </div>
-
       {showNew && (
         <Modal title="Add Inventory Item" onClose={()=>setShowNew(false)}>
           {[["Item Name","name","text"],["Quantity","qty","number"],["Low Stock Alert At","threshold","number"]].map(([label,key,type])=>(
             <div key={key} style={{marginBottom:14}}>
-              <label style={{fontSize:12,color:"#8b7355",display:"block",marginBottom:4}}>{label}</label>
+              <label style={{fontSize:12,color:"#6b6b6b",display:"block",marginBottom:5,fontWeight:500}}>{label}</label>
               <input type={type} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} style={inputStyle}/>
             </div>
           ))}
           <div style={{marginBottom:14}}>
-            <label style={{fontSize:12,color:"#8b7355",display:"block",marginBottom:4}}>Unit</label>
+            <label style={{fontSize:12,color:"#6b6b6b",display:"block",marginBottom:5,fontWeight:500}}>Unit</label>
             <select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})} style={inputStyle}>
               {["metres","yards","pcs","rolls","kg","spools"].map(u=><option key={u}>{u}</option>)}
             </select>
